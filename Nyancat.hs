@@ -167,7 +167,7 @@ main = withInit [InitEverything] $ do
   let spkArea = surfaceRect (spkFr !! 0)
   rand <- getStdGen
 
-  openAudio 22050 AudioU16Sys 2 4096
+  openAudio 22050 AudioS16Sys 2 4096
   music <- loadMUS "res/default/music.ogg"
   playMusic music 0
 
@@ -183,8 +183,8 @@ main = withInit [InitEverything] $ do
                    , background = bgColour
                    , randGen = rand
                    }
-  freeMusic music
   closeAudio
+  freeMusic music
  where clearEvents = do
          event <- pollEvent
          case event of
