@@ -1,5 +1,5 @@
-import NC.SDLHelper as H
 import Graphics.UI.SDL
+import Graphics.UI.SDL.Image
 
 data Cat = Cat { catPos :: Rect
                }
@@ -19,6 +19,7 @@ data State = State { cats :: [Cat]
                    , drawArea :: Rect
                    }
              
+
 advanceSparkle :: State -> Sparkle -> Sparkle
 advanceSparkle st sp = sp { sprkPos = newRect
                           , frame = newFrame
@@ -36,6 +37,10 @@ advanceState st = st { catFrame = (catFrame st + 1) `mod` maxCatFrame
  where maxCatFrame = (length $ catFrames st) - 1
        newSparkles = map (advanceSparkle st) (sparkles st)
 
+applySurface :: Int -> Int -> Surface -> Surface -> IO Bool
+applySurface x y src dst = blitSurface src Nothing dst offset
+ where offset = Just Rect { rectX = x, rectY = y, rectW = 0, rectH = 0 }
+
 catSpawn :: Rect -> Rect -> Cat
 catSpawn (Rect _ _ scrW scrH) (Rect _ _ catW catH) = Cat cRect
  where cRect = Rect cX cY catW catH
@@ -43,7 +48,7 @@ catSpawn (Rect _ _ scrW scrH) (Rect _ _ catW catH) = Cat cRect
        cY = scrH `div` 2 - catH `div` 2
 
 drawCat :: State -> Cat -> IO Bool
-drawCat st c = H.applySurface x y cSurf scr
+drawCat st c = applySurface x y cSurf scr
  where catP = catPos c
        x = rectX catP
        y = rectY catP
@@ -57,6 +62,9 @@ drawSparkle st sp = applySurface x y spSurf scr
        spkRect = sprkPos sp
        x = rectX spkRect
        y = rectY spkRect
+
+loadImage :: String -> IO Surface
+loadImage filename = load filename >>= displayFormat
 
 sparkleSpawn :: Rect -> Rect -> Sparkle
 sparkleSpawn (Rect _ _ scrW scrH) (Rect _ _ spkW spkH) = sp
@@ -72,8 +80,12 @@ spkOnscreen :: State -> Sparkle -> Bool
 spkOnscreen st sp = True
  where area = drawArea st
        spRect = sprkPos sp
-       (spX, spY, spW, spH) = (rectX spRect, rectY spRect,
-                               rectW spRect, rectH spRect)
+       (Rect spX spY spW spH) = spRect
+
+surfaceRect :: Surface -> Rect
+surfaceRect surf = Rect 0 0 w h
+ where w = surfaceGetWidth surf
+       h = surfaceGetHeight surf
 
 mainLoop :: State -> IO ()
 mainLoop st = do
