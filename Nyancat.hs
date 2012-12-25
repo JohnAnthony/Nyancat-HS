@@ -1,5 +1,6 @@
 import Graphics.UI.SDL
 import Graphics.UI.SDL.Image
+import Graphics.UI.SDL.Mixer
 import System.Random
 import Control.Monad
 
@@ -151,11 +152,13 @@ main = withInit [InitEverything] $ do
   let catArea = surfaceRect (catFr !! 0)
   let spkArea = surfaceRect (spkFr !! 0)
   rand <- getStdGen
+
+  openAudio 44100 AudioS16Sys 2 4096
+  music <- loadMUS "res/default/music.ogg"
+  tryPlayMusic music 0
+
   fillRect scr (Just scrArea) bgColour
-
   clearEvents
-
-
   mainLoop $ State { screen = scr
                    , drawArea = surfaceRect scr
                    , catFrames = catFr
@@ -166,7 +169,6 @@ main = withInit [InitEverything] $ do
                    , background = bgColour
                    , randGen = rand
                    }
-
  where clearEvents = do
          event <- pollEvent
          case event of
