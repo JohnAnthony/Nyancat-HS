@@ -121,7 +121,7 @@ mainLoop st = do
 
 main :: IO ()
 main = withInit [InitEverything] $ do
-    scr <- setVideoMode 640 480 32 [HWSurface]
+    scr <- setVideoMode 800 600 32 [HWSurface]
     let fmt = surfaceGetPixelFormat scr
     let scrArea = surfaceRect scr
     setCaption "nyan! nyan! nyan! nyan!" []
