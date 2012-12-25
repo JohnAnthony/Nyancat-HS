@@ -34,13 +34,15 @@ advanceSparkle st sp = sp { sprkPos = newRect
        newFrame = (oldFrame + 1) `mod` maxFrame
 
 advanceSparkleList :: State -> [Sparkle] -> [Sparkle]
-advanceSparkleList st spLst = newSpk : advSpk
+advanceSparkleList st spLst = if newSpkPossi == 1
+                              then newSpk : advSpk
+                              else advSpk
  where advSpk = filter (spkOnscreen st) $ map (advanceSparkle st) spLst
        g = randGen st
        newSpk = sparkleSpawn g (surfaceRect scr) (surfaceRect catS)
        scr = screen st
        catS = (catFrames st) !! 0
-       (newSpkPossi, g2) = randomR (1 :: Int, 20) g
+       (newSpkPossi, g2) = randomR (1 :: Int, 3) g
 
 advanceState :: State -> State
 advanceState st = st { catFrame = (catFrame st + 1) `mod` maxCatFrame
@@ -111,8 +113,7 @@ mainLoop st = do
   mapM (drawCat st) catLst
   Graphics.UI.SDL.flip scr
   mapM (\r -> fillRect scr (Just r) bg) blankLst
-  delay 50
-
+  delay 70
   quit <- do
     event <- pollEvent
     case event of
@@ -121,7 +122,6 @@ mainLoop st = do
       KeyDown _ -> return True
       MouseMotion _ _ _ _ -> return True
       _ -> return False
-  
   unless quit $ mainLoop newSt
  where newSt = advanceState st
        catLst = cats st
@@ -155,7 +155,7 @@ main = withInit [InitEverything] $ do
 
   openAudio 44100 AudioS16Sys 2 256
   music <- loadMUS "res/default/music.ogg"
-  tryPlayMusic music 0
+  playMusic music 0
 
   fillRect scr (Just scrArea) bgColour
   clearEvents
@@ -169,6 +169,7 @@ main = withInit [InitEverything] $ do
                    , background = bgColour
                    , randGen = rand
                    }
+  closeAudio
  where clearEvents = do
          event <- pollEvent
          case event of
