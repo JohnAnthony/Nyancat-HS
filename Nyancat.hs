@@ -1,6 +1,7 @@
 import Graphics.UI.SDL
 import Graphics.UI.SDL.Image
 import System.Random
+import Control.Monad
 
 data Cat = Cat { catPos :: Rect
                }
@@ -15,7 +16,6 @@ data State = State { cats :: [Cat]
                    , catFrames :: [Surface]
                    , sparkles :: [Sparkle]
                    , sparkleFrames :: [Surface]
-                   , running :: Bool
                    , screen :: Surface
                    , drawArea :: Rect
                    , background :: Pixel
@@ -111,7 +111,17 @@ mainLoop st = do
   Graphics.UI.SDL.flip scr
   mapM (\r -> fillRect scr (Just r) bg) blankLst
   delay 50
-  mainLoop newSt
+
+  quit <- do
+    event <- pollEvent
+    case event of
+      NoEvent -> return False
+      Quit -> return True
+      KeyDown _ -> return True
+      MouseMotion _ _ _ _ -> return True
+      _ -> return False
+  
+  unless quit $ mainLoop newSt
  where newSt = advanceState st
        catLst = cats st
        sparkleLst = sparkles st
@@ -121,35 +131,44 @@ mainLoop st = do
 
 main :: IO ()
 main = withInit [InitEverything] $ do
-    scr <- setVideoMode 800 600 32 [HWSurface]
-    let fmt = surfaceGetPixelFormat scr
-    let scrArea = surfaceRect scr
-    setCaption "nyan! nyan! nyan! nyan!" []
-    bgColour <- mapRGB fmt 0x00 0x33 0x66
-    catFr <- mapM loadImage [ "res/default/fg00.png" 
-                            , "res/default/fg01.png"
-                            , "res/default/fg02.png"
-                            , "res/default/fg03.png"
-                            , "res/default/fg04.png"
-                            ]
-    spkFr <- mapM loadImage [ "res/default/bg00.png"
-                            , "res/default/bg01.png"
-                            , "res/default/bg02.png"
-                            , "res/default/bg03.png"
-                            , "res/default/bg04.png"
-                            ]
-    let catArea = surfaceRect (catFr !! 0)
-    let spkArea = surfaceRect (spkFr !! 0)
-    rand <- getStdGen
-    fillRect scr (Just scrArea) bgColour
-    mainLoop $ State { screen = scr
-                     , drawArea = surfaceRect scr
-                     , catFrames = catFr
-                     , sparkleFrames = spkFr
-                     , cats = [catSpawn scrArea catArea]
-                     , catFrame = 0
-                     , sparkles = []
-                     , background = bgColour
-                     , running = True
-                     , randGen = rand
-                     }
+  scr <- setVideoMode 800 600 32 [HWSurface]
+  let fmt = surfaceGetPixelFormat scr
+  let scrArea = surfaceRect scr
+  setCaption "nyan! nyan! nyan! nyan!" []
+  bgColour <- mapRGB fmt 0x00 0x33 0x66
+  catFr <- mapM loadImage [ "res/default/fg00.png" 
+                          , "res/default/fg01.png"
+                          , "res/default/fg02.png"
+                          , "res/default/fg03.png"
+                          , "res/default/fg04.png"
+                          ]
+  spkFr <- mapM loadImage [ "res/default/bg00.png"
+                          , "res/default/bg01.png"
+                          , "res/default/bg02.png"
+                          , "res/default/bg03.png"
+                          , "res/default/bg04.png"
+                          ]
+  let catArea = surfaceRect (catFr !! 0)
+  let spkArea = surfaceRect (spkFr !! 0)
+  rand <- getStdGen
+  fillRect scr (Just scrArea) bgColour
+
+  clearEvents
+
+
+  mainLoop $ State { screen = scr
+                   , drawArea = surfaceRect scr
+                   , catFrames = catFr
+                   , sparkleFrames = spkFr
+                   , cats = [catSpawn scrArea catArea]
+                   , catFrame = 0
+                   , sparkles = []
+                   , background = bgColour
+                   , randGen = rand
+                   }
+
+ where clearEvents = do
+         event <- pollEvent
+         case event of
+           NoEvent -> return ()
+           _ -> clearEvents
