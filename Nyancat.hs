@@ -1,5 +1,6 @@
 import Graphics.UI.SDL
 import Graphics.UI.SDL.Image
+import System.Random
 
 data Cat = Cat { catPos :: Rect
                }
@@ -18,6 +19,7 @@ data State = State { cats :: [Cat]
                    , screen :: Surface
                    , drawArea :: Rect
                    , background :: Pixel
+                   , randGen :: StdGen
                    }
              
 advanceSparkle :: State -> Sparkle -> Sparkle
@@ -31,15 +33,22 @@ advanceSparkle st sp = sp { sprkPos = newRect
        newFrame = (oldFrame + 1) `mod` maxFrame
 
 advanceSparkleList :: State -> [Sparkle] -> [Sparkle]
-advanceSparkleList st spLst = filter (spkOnscreen st) advSpk
- where advSpk = map (advanceSparkle st) spLst
+advanceSparkleList st spLst = newSpk : advSpk
+ where advSpk = filter (spkOnscreen st) $ map (advanceSparkle st) spLst
+       g = randGen st
+       newSpk = sparkleSpawn g (surfaceRect scr) (surfaceRect catS)
+       scr = screen st
+       catS = (catFrames st) !! 0
+       (newSpkPossi, g2) = randomR (1 :: Int, 20) g
 
 advanceState :: State -> State
 advanceState st = st { catFrame = (catFrame st + 1) `mod` maxCatFrame
                      , sparkles = filter (spkOnscreen st) newSparkles
+                     , randGen = newRnd
                      }
  where maxCatFrame = (length $ catFrames st)
        newSparkles = advanceSparkleList st (sparkles st)
+       (_ , newRnd) = random (randGen st) :: (Int, StdGen)
 
 applySurface :: Int -> Int -> Surface -> Surface -> IO Bool
 applySurface x y src dst = blitSurface src Nothing dst offset
@@ -68,17 +77,21 @@ drawSparkle st sp = applySurface x y spSurf scr
        y = rectY spkRect
 
 loadImage :: String -> IO Surface
-loadImage filename = load filename >>= displayFormat
+loadImage filename = load filename
 
-sparkleSpawn :: Rect -> Rect -> Sparkle
-sparkleSpawn (Rect _ _ scrW scrH) (Rect _ _ spkW spkH) = sp
+sparkleSpawn :: StdGen -> Rect -> Rect -> Sparkle
+sparkleSpawn g (Rect _ _ scrW scrH) (Rect _ _ spkW spkH) = sp
  where sp = Sparkle { sprkPos = sRect
                     , frame = 0
-                    , velocity = 5
-                    }          
+                    , velocity = startSpd
+                    }
+       minY = 0 - spkH
+       maxY = scrH
        sRect = Rect sX sY spkW spkH
        sX = scrW
-       sY = 10
+       sY = startY
+       (startY, g2) = randomR (minY, maxY) g
+       (startSpd, g3) = randomR (10, 40) g2
 
 spkOnscreen :: State -> Sparkle -> Bool
 spkOnscreen st sp = True
@@ -127,6 +140,7 @@ main = withInit [InitEverything] $ do
                             ]
     let catArea = surfaceRect (catFr !! 0)
     let spkArea = surfaceRect (spkFr !! 0)
+    rand <- getStdGen
     fillRect scr (Just scrArea) bgColour
     mainLoop $ State { screen = scr
                      , drawArea = surfaceRect scr
@@ -134,7 +148,8 @@ main = withInit [InitEverything] $ do
                      , sparkleFrames = spkFr
                      , cats = [catSpawn scrArea catArea]
                      , catFrame = 0
-                     , sparkles = [sparkleSpawn scrArea spkArea]
+                     , sparkles = []
                      , background = bgColour
                      , running = True
+                     , randGen = rand
                      }
