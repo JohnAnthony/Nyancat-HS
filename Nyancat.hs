@@ -111,10 +111,8 @@ sparkleSpawn g (Rect _ _ scrW scrH) (Rect _ _ spkW spkH) = sp
        (startSpd, g3) = randomR (10, 40) g2
 
 spkOnscreen :: State -> Sparkle -> Bool
-spkOnscreen st sp = if spX + spW < 0 || spY + spH < 0 ||
-                       spX > arW || spY > arH
-                    then False
-                    else True
+spkOnscreen st sp = not $ spX + spW < 0 || spY + spH < 0 ||
+                          spX > arW || spY > arH
  where (Rect arX arY arW arH) = drawArea st
        (Rect spX spY spW spH) = sprkPos sp
 
@@ -169,7 +167,7 @@ main = withInit [InitEverything] $ do
   let spkArea = surfaceRect (spkFr !! 0)
   rand <- getStdGen
 
-  openAudio 44100 AudioS16Sys 2 1024
+  openAudio 22050 AudioU16Sys 2 4096
   music <- loadMUS "res/default/music.ogg"
   playMusic music 0
 
@@ -185,6 +183,7 @@ main = withInit [InitEverything] $ do
                    , background = bgColour
                    , randGen = rand
                    }
+  freeMusic music
   closeAudio
  where clearEvents = do
          event <- pollEvent
