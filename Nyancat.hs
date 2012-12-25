@@ -41,7 +41,7 @@ advanceSparkleList st spLst = if newSpkPossi == 1
        g = randGen st
        newSpk = sparkleSpawn g (surfaceRect scr) (surfaceRect catS)
        scr = screen st
-       catS = (catFrames st) !! 0
+       catS = head $ catFrames st
        (newSpkPossi, g2) = randomR (1 :: Int, 3) g
 
 advanceState :: State -> State
@@ -49,7 +49,7 @@ advanceState st = st { catFrame = (catFrame st + 1) `mod` maxCatFrame
                      , sparkles = filter (spkOnscreen st) newSparkles
                      , randGen = newRnd
                      }
- where maxCatFrame = (length $ catFrames st)
+ where maxCatFrame = length $ catFrames st
        newSparkles = advanceSparkleList st (sparkles st)
        (_ , newRnd) = random (randGen st) :: (Int, StdGen)
 
@@ -81,9 +81,6 @@ drawSparkle st sp = applySurface x y spSurf scr
        x = rectX spkRect
        y = rectY spkRect
 
-loadImage :: String -> IO Surface
-loadImage filename = load filename
-
 overlap :: Rect -> Rect -> Rect
 overlap r1@(Rect r1x r1y r1w r1h) r2@(Rect r2x r2y r2w r2h)
   | r1x > r2x + r2w = Rect 0 0 0 0
@@ -102,7 +99,7 @@ sparkleSpawn g (Rect _ _ scrW scrH) (Rect _ _ spkW spkH) = sp
                     , frame = 0
                     , velocity = startSpd
                     }
-       minY = 0 - spkH
+       minY = negate spkH
        maxY = scrH
        sRect = Rect sX sY spkW spkH
        sX = scrW - 1
@@ -123,10 +120,10 @@ surfaceRect surf = Rect 0 0 w h
 
 mainLoop :: State -> IO ()
 mainLoop st = do
-  mapM (drawSparkle st) sparkleLst
-  mapM (drawCat st) catLst
+  mapM_ (drawSparkle st) sparkleLst
+  mapM_ (drawCat st) catLst
   Graphics.UI.SDL.flip scr
-  mapM (\r -> fillRect scr (Just r) bg) blankLst
+  mapM_ (\r -> fillRect scr (Just r) bg) blankLst
   delay 70
   quit <- do
     event <- pollEvent
@@ -134,7 +131,7 @@ mainLoop st = do
       NoEvent -> return False
       Quit -> return True
       KeyDown _ -> return True
-      MouseMotion _ _ _ _ -> return True
+      MouseMotion {} -> return True
       _ -> return False
   unless quit $ mainLoop newSt
  where newSt = advanceState st
@@ -151,20 +148,20 @@ main = withInit [InitEverything] $ do
   let scrArea = surfaceRect scr
   setCaption "nyan! nyan! nyan! nyan!" []
   bgColour <- mapRGB fmt 0x00 0x33 0x66
-  catFr <- mapM loadImage [ "res/default/fg00.png" 
-                          , "res/default/fg01.png"
-                          , "res/default/fg02.png"
-                          , "res/default/fg03.png"
-                          , "res/default/fg04.png"
-                          ]
-  spkFr <- mapM loadImage [ "res/default/bg00.png"
-                          , "res/default/bg01.png"
-                          , "res/default/bg02.png"
-                          , "res/default/bg03.png"
-                          , "res/default/bg04.png"
-                          ]
-  let catArea = surfaceRect (catFr !! 0)
-  let spkArea = surfaceRect (spkFr !! 0)
+  catFr <- mapM load [ "res/default/fg00.png" 
+                     , "res/default/fg01.png"
+                     , "res/default/fg02.png"
+                     , "res/default/fg03.png"
+                     , "res/default/fg04.png"
+                     ]
+  spkFr <- mapM load [ "res/default/bg00.png"
+                     , "res/default/bg01.png"
+                     , "res/default/bg02.png"
+                     , "res/default/bg03.png"
+                     , "res/default/bg04.png"
+                     ]
+  let catArea = surfaceRect $ head catFr
+  let spkArea = surfaceRect $ head spkFr
   rand <- getStdGen
 
   openAudio 22050 AudioS16Sys 2 4096
@@ -173,16 +170,16 @@ main = withInit [InitEverything] $ do
 
   fillRect scr (Just scrArea) bgColour
   clearEvents
-  mainLoop $ State { screen = scr
-                   , drawArea = surfaceRect scr
-                   , catFrames = catFr
-                   , sparkleFrames = spkFr
-                   , cats = [catSpawn scrArea catArea]
-                   , catFrame = 0
-                   , sparkles = []
-                   , background = bgColour
-                   , randGen = rand
-                   }
+  mainLoop State { screen = scr
+                 , drawArea = surfaceRect scr
+                 , catFrames = catFr
+                 , sparkleFrames = spkFr
+                 , cats = [catSpawn scrArea catArea]
+                 , catFrame = 0
+                 , sparkles = []
+                 , background = bgColour
+                 , randGen = rand
+                 }
   closeAudio
   freeMusic music
  where clearEvents = do
