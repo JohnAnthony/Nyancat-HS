@@ -4,3 +4,6 @@
 -- Manpage and README.md
 -- Hlint compliance
 -- Xinerama support
+-- Handle installed paths properly
+-- Makefile: install, uninstall and cleaning
+-- Package up for Hoogle
