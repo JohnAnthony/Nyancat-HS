@@ -153,7 +153,7 @@ main = withInit [InitEverything] $ do
   let spkArea = surfaceRect (spkFr !! 0)
   rand <- getStdGen
 
-  openAudio 44100 AudioS16Sys 2 4096
+  openAudio 44100 AudioS16Sys 2 256
   music <- loadMUS "res/default/music.ogg"
   tryPlayMusic music 0
 
