@@ -1,5 +1,4 @@
 -- Clean exiting
--- Sparkle displacement (heal artifacts with background colour)
 -- Generalise sparkles and cats into ScreenObject class
 -- Handle lots of arguments for options
 -- Fullscreening
