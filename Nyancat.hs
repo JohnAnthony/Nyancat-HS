@@ -54,8 +54,10 @@ advanceState st = st { catFrame = (catFrame st + 1) `mod` maxCatFrame
        (_ , newRnd) = random (randGen st) :: (Int, StdGen)
 
 applySurface :: Int -> Int -> Surface -> Surface -> IO Bool
-applySurface x y src dst = blitSurface src Nothing dst offset
- where offset = Just Rect { rectX = x, rectY = y, rectW = 0, rectH = 0 }
+applySurface x y src dst = blitSurface src (Just clip) dst (Just offset)
+ where offset@(Rect ox oy ow oh) = overlap (Rect x y w h) (surfaceRect dst)
+       clip = Rect (abs $ min x 0) (abs $ min y 0) ow oh
+       (Rect _ _ w h) = surfaceRect src
 
 catSpawn :: Rect -> Rect -> Cat
 catSpawn (Rect _ _ scrW scrH) (Rect _ _ catW catH) = Cat cRect
@@ -82,6 +84,18 @@ drawSparkle st sp = applySurface x y spSurf scr
 loadImage :: String -> IO Surface
 loadImage filename = load filename
 
+overlap :: Rect -> Rect -> Rect
+overlap r1@(Rect r1x r1y r1w r1h) r2@(Rect r2x r2y r2w r2h)
+  | r1x > r2x + r2w = Rect 0 0 0 0
+  | r2x > r1x + r1w = Rect 0 0 0 0
+  | r1y > r2y + r2h = Rect 0 0 0 0
+  | r2y > r1y + r1h = Rect 0 0 0 0
+  | otherwise = Rect x y w h
+     where x = max r1x r2x
+           y = max r1y r2y
+           w = if r1x > r2x then r2w - r1x else r1w - r2x
+           h = if r1y > r2y then r2h - r1y else r1h - r2y
+
 sparkleSpawn :: StdGen -> Rect -> Rect -> Sparkle
 sparkleSpawn g (Rect _ _ scrW scrH) (Rect _ _ spkW spkH) = sp
  where sp = Sparkle { sprkPos = sRect
@@ -91,16 +105,18 @@ sparkleSpawn g (Rect _ _ scrW scrH) (Rect _ _ spkW spkH) = sp
        minY = 0 - spkH
        maxY = scrH
        sRect = Rect sX sY spkW spkH
-       sX = scrW
+       sX = scrW - 1
        sY = startY
        (startY, g2) = randomR (minY, maxY) g
        (startSpd, g3) = randomR (10, 40) g2
 
 spkOnscreen :: State -> Sparkle -> Bool
-spkOnscreen st sp = True
- where area = drawArea st
-       spRect = sprkPos sp
-       (Rect spX spY spW spH) = spRect
+spkOnscreen st sp = if spX + spW < 0 || spY + spH < 0 ||
+                       spX > arW || spY > arH
+                    then False
+                    else True
+ where (Rect arX arY arW arH) = drawArea st
+       (Rect spX spY spW spH) = sprkPos sp
 
 surfaceRect :: Surface -> Rect
 surfaceRect surf = Rect 0 0 w h
@@ -153,7 +169,7 @@ main = withInit [InitEverything] $ do
   let spkArea = surfaceRect (spkFr !! 0)
   rand <- getStdGen
 
-  openAudio 44100 AudioS16Sys 2 256
+  openAudio 44100 AudioS16Sys 2 1024
   music <- loadMUS "res/default/music.ogg"
   playMusic music 0
 
