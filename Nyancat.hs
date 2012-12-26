@@ -114,6 +114,13 @@ catSpawn (Rect _ _ scrW scrH) (Rect _ _ catW catH) = Cat cRect
        cX = scrW `div` 2 - catW `div` 2
        cY = scrH `div` 2 - catH `div` 2
 
+clearEvents :: IO ()
+clearEvents = do
+  event <- pollEvent
+  case event of
+    NoEvent -> return ()
+    _ -> clearEvents
+
 defaultConfig :: Config
 defaultConfig = Config { videoFlags = [HWSurface, Fullscreen]
                        , width  = 0
@@ -238,31 +245,31 @@ main = withInit [InitEverything] $ do
   args <- getArgs
   let config = foldr applyArg defaultConfig $ argsAndOpts args
 
-  if justHelp config then do
+  when (justHelp config) $ do
     putStrLn usageText
     exitSuccess
-  else return ()
 
   scr <- if (width config /= 0 && height config /= 0)
             || any (== Fullscreen) (videoFlags config)
     then setVideoMode (width config) (height config) 32 $ videoFlags config
     else setVideoMode 800 600 32 $ videoFlags config
+  setCaption "nyan! nyan! nyan! nyan!" []
+
+  resources <- findResources $ dataSet config
+
+  music <- do loadMUS $ musicPath resources
+  when (musicOn config) $ do
+    openAudio 22050 AudioS16Sys 2 4096
+    playMusic music 0
+
   let fmt = surfaceGetPixelFormat scr
   let scrArea = surfaceRect scr
-  setCaption "nyan! nyan! nyan! nyan!" []
-  bgColour <- mapRGB fmt 0x00 0x33 0x66
-  resources <- findResources $ dataSet config
   catFr <- mapM load $ catPaths resources
   spkFr <- mapM load $ sparklePaths resources
+  bgColour <- mapRGB fmt 0x00 0x33 0x66
   let catArea = surfaceRect $ head catFr
   let spkArea = surfaceRect $ head spkFr
   rand <- getStdGen
-
-  music <- do loadMUS $ musicPath resources
-  if musicOn config then do
-    openAudio 22050 AudioS16Sys 2 4096
-    playMusic music 0
-  else return ()
 
   fillRect scr (Just scrArea) bgColour
   clearEvents
@@ -277,14 +284,7 @@ main = withInit [InitEverything] $ do
                  , randGen = rand
                  }
 
-  if musicOn config then do
+  when (musicOn config) $ do
     haltMusic
     closeAudio
-  else return ()
   freeMusic music
-
- where clearEvents = do
-         event <- pollEvent
-         case event of
-           NoEvent -> return ()
-           _ -> clearEvents
