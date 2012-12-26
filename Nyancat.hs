@@ -98,7 +98,7 @@ catSpawn (Rect _ _ scrW scrH) (Rect _ _ catW catH) = Cat cRect
        cY = scrH `div` 2 - catH `div` 2
 
 defaultConfig :: Config
-defaultConfig = Config { videoFlags = [HWSurface]
+defaultConfig = Config { videoFlags = [HWSurface, Fullscreen]
                        , width  = 0
                        , height = 0
                        , musicOn = True
@@ -215,8 +215,8 @@ main = withInit [InitEverything] $ do
 
   scr <- if (width config /= 0 && height config /= 0)
             || any (== Fullscreen) (videoFlags config)
-    then setVideoMode (width config) (height config) 32 (videoFlags config)
-    else setVideoMode 800 600 32 (videoFlags config)
+    then setVideoMode (width config) (height config) 32 $ videoFlags config
+    else setVideoMode 800 600 32 $ videoFlags config
   let fmt = surfaceGetPixelFormat scr
   let scrArea = surfaceRect scr
   setCaption "nyan! nyan! nyan! nyan!" []
