@@ -14,3 +14,6 @@ uninstall:
 	rm /usr/bin/nyancat
 	rm /usr/share/man/man1/nyancat.1
 	rm -r /usr/share/nyancat
+
+clean:
+	rm nyancat
