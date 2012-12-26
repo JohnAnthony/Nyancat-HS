@@ -91,6 +91,10 @@ applySurface x y src dst = blitSurface src (Just clip) dst (Just offset)
        clip = Rect (abs $ min x 0) (abs $ min y 0) ow oh
        (Rect _ _ w h) = surfaceRect src
 
+argsAndOpts :: [String] -> [(String, String)]
+argsAndOpts args = filter (\(a, b) -> head a == '-') $ zip args optSet
+ where optSet = (tail args) ++ [""]
+
 catSpawn :: Rect -> Rect -> Cat
 catSpawn (Rect _ _ scrW scrH) (Rect _ _ catW catH) = Cat cRect
  where cRect = Rect cX cY catW catH
@@ -211,7 +215,7 @@ mainLoop st = do
 main :: IO ()
 main = withInit [InitEverything] $ do
   args <- getArgs
-  let config = foldr applyArg defaultConfig $ zip args (tail args)
+  let config = foldr applyArg defaultConfig $ argsAndOpts args
 
   scr <- if (width config /= 0 && height config /= 0)
             || any (== Fullscreen) (videoFlags config)
