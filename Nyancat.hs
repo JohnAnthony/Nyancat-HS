@@ -3,11 +3,19 @@ import Graphics.UI.SDL.Image
 import Graphics.UI.SDL.Mixer
 import System.IO
 import System.Random
+import System.Environment
 import Control.Monad
 import Control.Monad.Error
 
 data Cat = Cat { catPos :: Rect
                }
+
+data Config = Config { videoFlags :: [SurfaceFlag]
+                     , width :: Int
+                     , height :: Int
+                     , musicOn :: Bool
+                     , dataSet :: String
+                     }
 
 data Sparkle = Sparkle { sprkPos :: Rect
                        , frame :: Int
@@ -61,6 +69,19 @@ advanceState st = st { catFrame = (catFrame st + 1) `mod` maxCatFrame
        newSparkles = advanceSparkleList st (sparkles st)
        (_ , newRnd) = random (randGen st) :: (Int, StdGen)
 
+applyArg :: String -> Config -> Config
+applyArg arg conf
+  | arg == "-f" = conf { videoFlags = Fullscreen : oldFlags }
+  | arg == "-F" = conf { videoFlags = filter fF oldFlags }
+  | arg == "-m" = conf { musicOn = True }
+  | arg == "-M" = conf { musicOn = False }
+  | arg == "-s" = conf { videoFlags = HWSurface : filter fS oldFlags }
+  | arg == "-S" = conf { musicOn = False }
+  | otherwise = conf
+ where fS = (\f -> f == HWSurface || f == SWSurface)
+       fF = (== Fullscreen)
+       oldFlags = videoFlags conf
+
 applySurface :: Int -> Int -> Surface -> Surface -> IO Bool
 applySurface x y src dst = blitSurface src (Just clip) dst (Just offset)
  where offset@(Rect ox oy ow oh) = overlap (Rect x y w h) (surfaceRect dst)
@@ -72,6 +93,14 @@ catSpawn (Rect _ _ scrW scrH) (Rect _ _ catW catH) = Cat cRect
  where cRect = Rect cX cY catW catH
        cX = scrW `div` 2 - catW `div` 2
        cY = scrH `div` 2 - catH `div` 2
+
+defaultConfig :: Config
+defaultConfig = Config { videoFlags = [HWSurface]
+                       , width  = 0
+                       , height = 0
+                       , musicOn = True
+                       , dataSet = "default"
+                       }
 
 drawCat :: State -> Cat -> IO Bool
 drawCat st c = applySurface x y cSurf scr
@@ -178,21 +207,28 @@ mainLoop st = do
 
 main :: IO ()
 main = withInit [InitEverything] $ do
-  scr <- setVideoMode 800 600 32 [HWSurface]
+  args <- getArgs
+  let config = foldr applyArg defaultConfig args
+
+  scr <- if width config /= 0 && height config /= 0
+    then setVideoMode (width config) (height config) 32 (videoFlags config)
+    else setVideoMode 0 0 32 (videoFlags config)
   let fmt = surfaceGetPixelFormat scr
   let scrArea = surfaceRect scr
   setCaption "nyan! nyan! nyan! nyan!" []
   bgColour <- mapRGB fmt 0x00 0x33 0x66
-  resources <- findResources "default"
+  resources <- findResources $ dataSet config
   catFr <- mapM load $ catPaths resources
   spkFr <- mapM load $ sparklePaths resources
   let catArea = surfaceRect $ head catFr
   let spkArea = surfaceRect $ head spkFr
   rand <- getStdGen
 
-  openAudio 22050 AudioS16Sys 2 4096
-  music <- loadMUS $ musicPath resources
-  playMusic music 0
+  music <- do loadMUS $ musicPath resources
+  if musicOn config then do
+    openAudio 22050 AudioS16Sys 2 4096
+    playMusic music 0
+  else return ()
 
   fillRect scr (Just scrArea) bgColour
   clearEvents
@@ -206,9 +242,13 @@ main = withInit [InitEverything] $ do
                  , background = bgColour
                  , randGen = rand
                  }
-  haltMusic
-  closeAudio
+
+  if musicOn config then do
+    haltMusic
+    closeAudio
+  else return ()
   freeMusic music
+
  where clearEvents = do
          event <- pollEvent
          case event of
