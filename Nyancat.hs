@@ -244,6 +244,8 @@ main = withInit [InitEverything] $ do
     putStrLn usageText
     exitSuccess
 
+  showCursor False
+
   scr <- if (width config /= 0 && height config /= 0)
             || elem Fullscreen (videoFlags config)
     then setVideoMode (width config) (height config) 32 $ videoFlags config
