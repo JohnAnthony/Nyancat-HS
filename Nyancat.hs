@@ -2,6 +2,7 @@ import Graphics.UI.SDL
 import Graphics.UI.SDL.Image
 import Graphics.UI.SDL.Mixer
 import System.IO
+import System.Exit
 import System.Random
 import System.Environment
 import Control.Monad
@@ -15,6 +16,7 @@ data Config = Config { videoFlags :: [SurfaceFlag]
                      , height :: Int
                      , musicOn :: Bool
                      , dataSet :: String
+                     , justHelp :: Bool
                      }
 
 data Sparkle = Sparkle { sprkPos :: Rect
@@ -71,15 +73,16 @@ advanceState st = st { catFrame = (catFrame st + 1) `mod` maxCatFrame
 
 applyArg :: (String, String) -> Config -> Config
 applyArg (arg, opt) conf
+  | arg == "-h" = conf { justHelp = True }
+  | arg == "-d" = conf { dataSet = opt }
   | arg == "-f" = conf { videoFlags = Fullscreen : oldFlags }
   | arg == "-F" = conf { videoFlags = filter fF oldFlags }
   | arg == "-m" = conf { musicOn = True }
   | arg == "-M" = conf { musicOn = False }
   | arg == "-s" = conf { videoFlags = HWSurface : filter fS oldFlags }
   | arg == "-S" = conf { musicOn = False }
-  | arg == "-w" = conf { width = read opt }
-  | arg == "-h" = conf { height = read opt }
-  | arg == "-r" = conf { dataSet = opt }
+  | arg == "-x" = conf { width = read opt }
+  | arg == "-y" = conf { height = read opt }
   | otherwise = conf
  where fS = (\f -> f /= HWSurface || f /= SWSurface)
        fF = (/= Fullscreen)
@@ -107,6 +110,7 @@ defaultConfig = Config { videoFlags = [HWSurface, Fullscreen]
                        , height = 0
                        , musicOn = True
                        , dataSet = "default"
+                       , justHelp = False
                        }
 
 drawCat :: State -> Cat -> IO Bool
@@ -212,10 +216,22 @@ mainLoop st = do
        blankLst = map sprkPos sparkleLst ++ map catPos catLst
        bg = background st
 
+usageText :: String
+usageText = concat
+  [ "\nPlease see the readme file or manpage for proper usage inctructions."
+  , "\n:: man dupe"
+  , "\n:: cat README\n"
+  ]
+
 main :: IO ()
 main = withInit [InitEverything] $ do
   args <- getArgs
   let config = foldr applyArg defaultConfig $ argsAndOpts args
+
+  if justHelp config then do
+    putStrLn usageText
+    exitSuccess
+  else return ()
 
   scr <- if (width config /= 0 && height config /= 0)
             || any (== Fullscreen) (videoFlags config)
