@@ -69,17 +69,20 @@ advanceState st = st { catFrame = (catFrame st + 1) `mod` maxCatFrame
        newSparkles = advanceSparkleList st (sparkles st)
        (_ , newRnd) = random (randGen st) :: (Int, StdGen)
 
-applyArg :: String -> Config -> Config
-applyArg arg conf
+applyArg :: (String, String) -> Config -> Config
+applyArg (arg, opt) conf
   | arg == "-f" = conf { videoFlags = Fullscreen : oldFlags }
   | arg == "-F" = conf { videoFlags = filter fF oldFlags }
   | arg == "-m" = conf { musicOn = True }
   | arg == "-M" = conf { musicOn = False }
   | arg == "-s" = conf { videoFlags = HWSurface : filter fS oldFlags }
   | arg == "-S" = conf { musicOn = False }
+  | arg == "-w" = conf { width = read opt }
+  | arg == "-h" = conf { height = read opt }
+  | arg == "-r" = conf { dataSet = opt }
   | otherwise = conf
- where fS = (\f -> f == HWSurface || f == SWSurface)
-       fF = (== Fullscreen)
+ where fS = (\f -> f /= HWSurface || f /= SWSurface)
+       fF = (/= Fullscreen)
        oldFlags = videoFlags conf
 
 applySurface :: Int -> Int -> Surface -> Surface -> IO Bool
@@ -208,11 +211,12 @@ mainLoop st = do
 main :: IO ()
 main = withInit [InitEverything] $ do
   args <- getArgs
-  let config = foldr applyArg defaultConfig args
+  let config = foldr applyArg defaultConfig $ zip args (tail args)
 
-  scr <- if width config /= 0 && height config /= 0
+  scr <- if (width config /= 0 && height config /= 0)
+            || any (== Fullscreen) (videoFlags config)
     then setVideoMode (width config) (height config) 32 (videoFlags config)
-    else setVideoMode 0 0 32 (videoFlags config)
+    else setVideoMode 800 600 32 (videoFlags config)
   let fmt = surfaceGetPixelFormat scr
   let scrArea = surfaceRect scr
   setCaption "nyan! nyan! nyan! nyan!" []
