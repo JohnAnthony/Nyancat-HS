@@ -1,5 +1,3 @@
--- Generalise sparkles and cats into ScreenObject class
--- Hlint compliance
 -- Xinerama support
 -- Makefile: install, uninstall and cleaning
 -- Package up for Hoogle

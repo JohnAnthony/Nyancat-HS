@@ -7,39 +7,60 @@ import System.Random
 import System.Environment
 import Control.Monad
 
-data Cat = Cat { catPos :: Rect
-               }
+newtype Cat = Cat { catPos :: Rect }
 
-data Config = Config { videoFlags :: [SurfaceFlag]
-                     , width :: Int
-                     , height :: Int
-                     , musicOn :: Bool
-                     , dataSet :: String
-                     , justHelp :: Bool
-                     }
+data Sparkle = Sparkle 
+  { sprkPos :: Rect
+  , frame :: Int
+  , velocity :: Int
+  }
 
-data Sparkle = Sparkle { sprkPos :: Rect
-                       , frame :: Int
-                       , velocity :: Int
-                       }
+data Config = Config 
+  { videoFlags :: [SurfaceFlag]
+  , width :: Int
+  , height :: Int
+  , musicOn :: Bool
+  , dataSet :: String
+  , justHelp :: Bool
+  }
 
-data State = State { cats :: [Cat]
-                   , catFrame :: Int
-                   , catFrames :: [Surface]
-                   , sparkles :: [Sparkle]
-                   , sparkleFrames :: [Surface]
-                   , screen :: Surface
-                   , drawArea :: Rect
-                   , background :: Pixel
-                   , randGen :: StdGen
-                   }
+data State = State
+  { cats :: [Cat]
+  , catFrame :: Int
+  , catFrames :: [Surface]
+  , sparkles :: [Sparkle]
+  , sparkleFrames :: [Surface]
+  , screen :: Surface
+  , drawArea :: Rect
+  , background :: Pixel
+  , randGen :: StdGen
+  }
 
-data ResourceSet = ResourceSet { catPaths :: [String]
-                               , sparklePaths :: [String]
-                               , musicPath :: String
-                               }
- deriving Show
+data ResourceSet = ResourceSet
+  { catPaths :: [String]
+  , sparklePaths :: [String]
+  , musicPath :: String
+  }
              
+class ScreenObject a where
+  draw :: State -> a -> IO Bool
+
+instance ScreenObject Cat where
+  draw st cat = applySurface x y cSurf scr
+   where scr = screen st
+         catP = catPos cat
+         x = rectX catP
+         y = rectY catP
+         cSurf = catFrames st !! catFrame st
+
+instance ScreenObject Sparkle where
+  draw st sp = applySurface x y spSurf scr
+   where scr = screen st
+         spSurf = sparkleFrames st !! frame sp
+         spkRect = sprkPos sp
+         x = rectX spkRect
+         y = rectY spkRect
+
 advanceSparkle :: State -> Sparkle -> Sparkle
 advanceSparkle st sp = sp { sprkPos = newRect
                           , frame = newFrame
@@ -129,22 +150,6 @@ defaultConfig = Config { videoFlags = [HWSurface, Fullscreen]
                        , justHelp = False
                        }
 
-drawCat :: State -> Cat -> IO Bool
-drawCat st c = applySurface x y cSurf scr
- where catP = catPos c
-       x = rectX catP
-       y = rectY catP
-       cSurf = catFrames st !! catFrame st
-       scr = screen st
-
-drawSparkle :: State -> Sparkle -> IO Bool
-drawSparkle st sp = applySurface x y spSurf scr
- where scr = screen st
-       spSurf = sparkleFrames st !! frame sp
-       spkRect = sprkPos sp
-       x = rectX spkRect
-       y = rectY spkRect
-
 findResources :: String -> IO ResourceSet
 findResources set = do
   installed <- doesFileExist $ head (catPaths rsInstalled)
@@ -201,8 +206,8 @@ surfaceRect surf = Rect 0 0 w h
 
 mainLoop :: State -> IO ()
 mainLoop st = do
-  mapM_ (drawSparkle st) sparkleLst
-  mapM_ (drawCat st) catLst
+  mapM_ (draw st) sparkleLst
+  mapM_ (draw st) catLst
   Graphics.UI.SDL.flip scr
   mapM_ (\r -> fillRect scr (Just r) bg) blankLst
   delay 70
