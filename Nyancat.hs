@@ -1,6 +1,7 @@
 import Graphics.UI.SDL
 import Graphics.UI.SDL.Image
 import Graphics.UI.SDL.Mixer
+import System.Directory
 import System.IO
 import System.Exit
 import System.Random
@@ -73,28 +74,28 @@ advanceState st = st { catFrame = (catFrame st + 1) `mod` maxCatFrame
 
 applyArg :: (String, String) -> Config -> Config
 applyArg (arg, opt) conf
-  | any (== arg) ["-h", "--help"] =
+  | arg `elem` ["-h", "--help"] =
      conf { justHelp = True }
-  | any (== arg) ["-d", "--data-set"] =
+  | arg `elem` ["-d", "--data-set"] =
      conf { dataSet = opt }
-  | any (== arg) ["-f", "--fullscreen"] =
+  | arg `elem` ["-f", "--fullscreen"] =
      conf { videoFlags = Fullscreen : oldFlags }
-  | any (== arg) ["-F", "--windowed", "--no-fullscreen"] =
+  | arg `elem` ["-F", "--windowed", "--no-fullscreen"] =
      conf { videoFlags = filter fF oldFlags }
-  | any (== arg) ["-m", "--music"] =
+  | arg `elem` ["-m", "--music"] =
      conf { musicOn = True }
-  | any (== arg) ["-M", "--no-music", "--mute"] =
+  | arg `elem` ["-M", "--no-music", "--mute"] =
      conf { musicOn = False }
-  | any (== arg) ["-s", "--hw-surface"] =
+  | arg `elem` ["-s", "--hw-surface"] =
      conf { videoFlags = HWSurface : filter fS oldFlags }
-  | any (== arg) ["-S", "--sw-surface", "--no-hw-surface"] =
+  | arg `elem` ["-S", "--sw-surface", "--no-hw-surface"] =
      conf { musicOn = False }
-  | any (== arg) ["-x", "--width"] =
+  | arg `elem` ["-x", "--width"] =
      conf { width = read opt }
-  | any (== arg) ["-y", "--height"] =
+  | arg `elem` ["-y", "--height"] =
      conf { height = read opt }
   | otherwise = conf
- where fS = (\f -> f /= HWSurface || f /= SWSurface)
+ where fS f = f /= HWSurface || f /= SWSurface
        fF = (/= Fullscreen)
        oldFlags = videoFlags conf
 
@@ -106,7 +107,7 @@ applySurface x y src dst = blitSurface src (Just clip) dst (Just offset)
 
 argsAndOpts :: [String] -> [(String, String)]
 argsAndOpts args = filter (\(a, b) -> head a == '-') $ zip args optSet
- where optSet = (tail args) ++ [""]
+ where optSet = tail args ++ [""]
 
 catSpawn :: Rect -> Rect -> Cat
 catSpawn (Rect _ _ scrW scrH) (Rect _ _ catW catH) = Cat cRect
@@ -146,20 +147,11 @@ drawSparkle st sp = applySurface x y spSurf scr
        x = rectX spkRect
        y = rectY spkRect
 
-fileExist :: FilePath -> IO Bool
-fileExist p = do
-  file <- openFile p ReadMode
-  hClose file
-  return True
-  `catchError` do return $ return False
-
 findResources :: String -> IO ResourceSet
 findResources set = do
-  installed <- fileExist $ head (catPaths rsInstalled)
-  local <- fileExist $ head (catPaths rsLocal)
-  if installed
-  then return rsInstalled
-  else return rsLocal
+  installed <- doesFileExist $ head (catPaths rsInstalled)
+  local <- doesFileExist $ head (catPaths rsLocal)
+  return $ if installed then rsInstalled else rsLocal
  where catFiles = map (\x-> "fg0" ++ show x ++ ".png") [0..4]
        sparkleFiles = map (\x-> "bg0" ++ show x ++ ".png") [0..4]
        musicFile = "music.ogg"
@@ -167,11 +159,11 @@ findResources set = do
        localPrefix = "res/" ++ set ++ "/"
        rsInstalled = setFromPrefix installedPrefix
        rsLocal = setFromPrefix localPrefix
-       setFromPrefix str =
-         ResourceSet { catPaths = map (\s -> str ++ s) catFiles
-                     , sparklePaths = map (\s -> str ++ s) sparkleFiles
-                     , musicPath = str ++ musicFile
-                     }
+       setFromPrefix str = ResourceSet
+         { catPaths = map (\s -> str ++ s) catFiles
+         , sparklePaths = map (\s -> str ++ s) sparkleFiles
+         , musicPath = str ++ musicFile
+         }
 
 overlap :: Rect -> Rect -> Rect
 overlap r1@(Rect r1x r1y r1w r1h) r2@(Rect r2x r2y r2w r2h)
@@ -250,14 +242,14 @@ main = withInit [InitEverything] $ do
     exitSuccess
 
   scr <- if (width config /= 0 && height config /= 0)
-            || any (== Fullscreen) (videoFlags config)
+            || elem Fullscreen (videoFlags config)
     then setVideoMode (width config) (height config) 32 $ videoFlags config
     else setVideoMode 800 600 32 $ videoFlags config
   setCaption "nyan! nyan! nyan! nyan!" []
 
   resources <- findResources $ dataSet config
 
-  music <- do loadMUS $ musicPath resources
+  music <- loadMUS $ musicPath resources
   when (musicOn config) $ do
     openAudio 22050 AudioS16Sys 2 4096
     playMusic music 0
