@@ -4,3 +4,4 @@
 -- Makefile: install, uninstall and cleaning
 -- Package up for Hoogle
 -- Use a more standard method of handling arguments
+-- Handle incorrect arguments
