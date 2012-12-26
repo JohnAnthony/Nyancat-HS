@@ -73,16 +73,21 @@ advanceState st = st { catFrame = (catFrame st + 1) `mod` maxCatFrame
 
 applyArg :: (String, String) -> Config -> Config
 applyArg (arg, opt) conf
-  | arg == "-h" = conf { justHelp = True }
-  | arg == "-d" = conf { dataSet = opt }
-  | arg == "-f" = conf { videoFlags = Fullscreen : oldFlags }
-  | arg == "-F" = conf { videoFlags = filter fF oldFlags }
-  | arg == "-m" = conf { musicOn = True }
-  | arg == "-M" = conf { musicOn = False }
-  | arg == "-s" = conf { videoFlags = HWSurface : filter fS oldFlags }
-  | arg == "-S" = conf { musicOn = False }
-  | arg == "-x" = conf { width = read opt }
-  | arg == "-y" = conf { height = read opt }
+  | any (== arg) ["-h", "--help"]       = conf { justHelp = True }
+  | any (== arg) ["-d", "--data-set"]   = conf { dataSet = opt }
+  | any (== arg) ["-f", "--fullscreen"] =
+    conf { videoFlags = Fullscreen : oldFlags }
+  | any (== arg) ["-F", "--windowed", "--no-fullscreen"] =
+    conf { videoFlags = filter fF oldFlags }
+  | any (== arg) ["-m", "--music"]      = conf { musicOn = True }
+  | any (== arg) ["-M", "--no-music", "--mute"] =
+    conf { musicOn = False }
+  | any (== arg) ["-s", "--hw-surface"] =
+    conf { videoFlags = HWSurface : filter fS oldFlags }
+  | any (== arg) ["-S", "--sw-surface", "--no-hw-surface"] =
+    conf { musicOn = False }
+  | any (== arg) ["-x", "--width"]  = conf { width = read opt }
+  | any (== arg) ["-y", "--height"] = conf { height = read opt }
   | otherwise = conf
  where fS = (\f -> f /= HWSurface || f /= SWSurface)
        fF = (/= Fullscreen)

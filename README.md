@@ -15,11 +15,11 @@ Flags:
            Choose your dataset. Included are "default" and "freedom"
 
     -f --fullscreen 
-    -F --windowed
+    -F --windowed --no-fullscreen
            Switch between fullscreen (default) and windowed modes
 
 	-m --music
-    -M --no-music
+    -M --no-music --mute
            Music on (default) or off
 
     -s --hw-surface
