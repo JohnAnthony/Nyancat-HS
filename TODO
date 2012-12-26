@@ -1,5 +1,5 @@
 -- Generalise sparkles and cats into ScreenObject class
--- Manpage and README.md
+-- Manpage
 -- Hlint compliance
 -- Xinerama support
 -- Makefile: install, uninstall and cleaning
