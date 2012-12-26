@@ -154,13 +154,14 @@ findResources :: String -> IO ResourceSet
 findResources set = do
   installed <- doesFileExist $ head (catPaths rsInstalled)
   return $ if installed then rsInstalled else rsLocal
- where catFiles = map (\x-> "fg0" ++ show x ++ ".png") ([0..4] :: [Int])
-       sparkleFiles = map (\x-> "bg0" ++ show x ++ ".png") ([0..4] :: [Int])
+ where catFiles = map (\x-> "fg0" ++ show x ++ ".png") range
+       sparkleFiles = map (\x-> "bg0" ++ show x ++ ".png") range
        musicFile = "music.ogg"
        installedPrefix = "/usr/share/nyancat/" ++ set ++ "/"
        localPrefix = "res/" ++ set ++ "/"
        rsInstalled = setFromPrefix installedPrefix
        rsLocal = setFromPrefix localPrefix
+       range = [0..4] :: [Int]
        setFromPrefix str = ResourceSet
          { catPaths = map (\s -> str ++ s) catFiles
          , sparklePaths = map (\s -> str ++ s) sparkleFiles
