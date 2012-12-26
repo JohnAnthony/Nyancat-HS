@@ -2,12 +2,10 @@ import Graphics.UI.SDL
 import Graphics.UI.SDL.Image
 import Graphics.UI.SDL.Mixer
 import System.Directory
-import System.IO
 import System.Exit
 import System.Random
 import System.Environment
 import Control.Monad
-import Control.Monad.Error
 
 data Cat = Cat { catPos :: Rect
                }
@@ -61,7 +59,7 @@ advanceSparkleList st spLst = if newSpkPossi == 1
        newSpk = sparkleSpawn g (surfaceRect scr) (surfaceRect catS)
        scr = screen st
        catS = head $ catFrames st
-       (newSpkPossi, g2) = randomR (1 :: Int, 3) g
+       (newSpkPossi, _) = randomR (1 :: Int, 3) g
 
 advanceState :: State -> State
 advanceState st = st { catFrame = (catFrame st + 1) `mod` maxCatFrame
@@ -101,12 +99,12 @@ applyArg (arg, opt) conf
 
 applySurface :: Int -> Int -> Surface -> Surface -> IO Bool
 applySurface x y src dst = blitSurface src (Just clip) dst (Just offset)
- where offset@(Rect ox oy ow oh) = overlap (Rect x y w h) (surfaceRect dst)
+ where offset@(Rect _ _ ow oh) = overlap (Rect x y w h) (surfaceRect dst)
        clip = Rect (abs $ min x 0) (abs $ min y 0) ow oh
        (Rect _ _ w h) = surfaceRect src
 
 argsAndOpts :: [String] -> [(String, String)]
-argsAndOpts args = filter (\(a, b) -> head a == '-') $ zip args optSet
+argsAndOpts args = filter (\(a, _) -> head a == '-') $ zip args optSet
  where optSet = tail args ++ [""]
 
 catSpawn :: Rect -> Rect -> Cat
@@ -150,7 +148,6 @@ drawSparkle st sp = applySurface x y spSurf scr
 findResources :: String -> IO ResourceSet
 findResources set = do
   installed <- doesFileExist $ head (catPaths rsInstalled)
-  local <- doesFileExist $ head (catPaths rsLocal)
   return $ if installed then rsInstalled else rsLocal
  where catFiles = map (\x-> "fg0" ++ show x ++ ".png") [0..4]
        sparkleFiles = map (\x-> "bg0" ++ show x ++ ".png") [0..4]
@@ -166,7 +163,7 @@ findResources set = do
          }
 
 overlap :: Rect -> Rect -> Rect
-overlap r1@(Rect r1x r1y r1w r1h) r2@(Rect r2x r2y r2w r2h)
+overlap (Rect r1x r1y r1w r1h) (Rect r2x r2y r2w r2h)
   | r1x > r2x + r2w = Rect 0 0 0 0
   | r2x > r1x + r1w = Rect 0 0 0 0
   | r1y > r2y + r2h = Rect 0 0 0 0
@@ -189,12 +186,12 @@ sparkleSpawn g (Rect _ _ scrW scrH) (Rect _ _ spkW spkH) = sp
        sX = scrW - 1
        sY = startY
        (startY, g2) = randomR (minY, maxY) g
-       (startSpd, g3) = randomR (10, 40) g2
+       (startSpd, _) = randomR (10, 40) g2
 
 spkOnscreen :: State -> Sparkle -> Bool
 spkOnscreen st sp = not $ spX + spW < 0 || spY + spH < 0 ||
                           spX > arW || spY > arH
- where (Rect arX arY arW arH) = drawArea st
+ where (Rect _   _   arW arH) = drawArea st
        (Rect spX spY spW spH) = sprkPos sp
 
 surfaceRect :: Surface -> Rect
@@ -209,7 +206,7 @@ mainLoop st = do
   Graphics.UI.SDL.flip scr
   mapM_ (\r -> fillRect scr (Just r) bg) blankLst
   delay 70
-  quit <- do
+  quitTime <- do
     event <- pollEvent
     case event of
       NoEvent -> return False
@@ -217,7 +214,7 @@ mainLoop st = do
       KeyDown _ -> return True
       MouseMotion {} -> return True
       _ -> return False
-  unless quit $ mainLoop newSt
+  unless quitTime $ mainLoop newSt
  where newSt = advanceState st
        catLst = cats st
        sparkleLst = sparkles st
@@ -260,10 +257,9 @@ main = withInit [InitEverything] $ do
   spkFr <- mapM load $ sparklePaths resources
   bgColour <- mapRGB fmt 0x00 0x33 0x66
   let catArea = surfaceRect $ head catFr
-  let spkArea = surfaceRect $ head spkFr
   rand <- getStdGen
 
-  fillRect scr (Just scrArea) bgColour
+  _ <- fillRect scr (Just scrArea) bgColour
   clearEvents
   mainLoop State { screen = scr
                  , drawArea = surfaceRect scr
