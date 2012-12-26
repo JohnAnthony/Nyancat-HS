@@ -154,6 +154,7 @@ findResources :: String -> IO ResourceSet
 findResources set = do
   installed <- doesFileExist $ head (catPaths rsInstalled)
   return $ if installed then rsInstalled else rsLocal
+  return rsInstalled
  where catFiles = map (\x-> "fg0" ++ show x ++ ".png") [0..4]
        sparkleFiles = map (\x-> "bg0" ++ show x ++ ".png") [0..4]
        musicFile = "music.ogg"

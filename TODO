@@ -1,5 +1,5 @@
 -- Xinerama support
 -- Makefile: install, uninstall and cleaning
--- Package up for Hoogle
+-- Package up for Hackage
 -- Use a more standard method of handling arguments
 -- Handle incorrect arguments
