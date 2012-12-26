@@ -1,6 +1,7 @@
 -- Generalise sparkles and cats into ScreenObject class
--- Manpage
 -- Hlint compliance
 -- Xinerama support
 -- Makefile: install, uninstall and cleaning
 -- Package up for Hoogle
+-- Use a more standard method of handling arguments
+-- Use a monadic if that doesn't demand an else
