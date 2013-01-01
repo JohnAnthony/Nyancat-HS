@@ -1,0 +1,38 @@
+.TH  1 Nyancat
+.SH NAME
+nyancat \- an SDL screensaver with extra nyan
+.SH SYNOPSIS
+.B nyancat
+.RB [ args ]
+.SH DESCRIPTION
+nyancat is an implementation of the popular Pop Tart / nyancat fad in
+SDL, wrapped into a simple screensaver`
+.SH OPTIONS
+.TP
+.B \-h \-\-help
+prints information regarding how to find help. It points you here.
+.TP
+.B \-d \-\-data\-set
+Choose your dataset. Included are "default" and "freedom"
+.TP
+.B \-f \-\-fullscreen | \-F \-\-windowed \-\-no\-fullscreen
+Switch between fullscreen (default) and windowed modes
+.TP
+.B  \-m \-\-music | \-M \-\-no\-music \-\-mute
+Music on (default) or off
+.TP
+.B \-s \-\-hw\-surface | \-S \-\-sw\-surface \-\-no\-hw\-surface
+Choose between a hardware surface (default) and software
+surface
+.TP
+.B \-x \-\-width <#> & \-y \-\-height <#>
+Set the width and height of the drawing surface. These
+default to 800x600 in windowed mode or your natice
+resolution in fullscreen mode
+.SH KNOWN BUGS
+.TP
+There appears to be some form of nasty bug in the Haskell SDL.Mixer bindings that cause music to halt if SDL.Mixer.freeMusic isn't later going to be called and a segfault or linked list corruption error if it IS and you exit the program early. The program has taken up the second option as it is the only way to remain usable and only has an effect in some cases.
+.SH CHARITY
+.TP
+If you find this software useful, please consider donating to Meningitis U.K. or your local meningitis charity.
+.B http://www.meningitisuk.org
