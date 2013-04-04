@@ -1,6 +1,6 @@
-import Graphics.UI.SDL
-import Graphics.UI.SDL.Image
-import Graphics.UI.SDL.Mixer
+import Graphics.UI.SDL as SDL
+import Graphics.UI.SDL.Image as SDL.Image
+import Graphics.UI.SDL.Mixer as SDL.Mixer
 import System.Directory
 import System.Exit
 import System.Random
@@ -209,7 +209,7 @@ mainLoop :: State -> IO ()
 mainLoop st = do
   mapM_ (draw st) sparkleLst
   mapM_ (draw st) catLst
-  Graphics.UI.SDL.flip scr
+  SDL.flip scr
   mapM_ (\r -> fillRect scr (Just r) bg) blankLst
   delay 70
   quitTime <- do
@@ -256,13 +256,13 @@ main = withInit [InitEverything] $ do
 
   music <- loadMUS $ musicPath resources
   when (musicOn config) $ do
-    openAudio 22050 AudioS16Sys 2 4096
+    openAudio 22050 SDL.Mixer.AudioS16Sys 2 4096
     playMusic music 0
 
   let fmt = surfaceGetPixelFormat scr
   let scrArea = surfaceRect scr
-  catFr <- mapM load $ catPaths resources
-  spkFr <- mapM load $ sparklePaths resources
+  catFr <- mapM SDL.Image.load $ catPaths resources
+  spkFr <- mapM SDL.Image.load $ sparklePaths resources
   bgColour <- mapRGB fmt 0x00 0x33 0x66
   let catArea = surfaceRect $ head catFr
   rand <- getStdGen
